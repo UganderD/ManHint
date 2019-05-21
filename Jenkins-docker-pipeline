@@ -1,0 +1,57 @@
+node{
+     
+    stage('SCM Checkout'){
+        git 'https://github.com/UganderD/ManHint.git'
+    }
+    
+   stage('Compile-Package'){
+     //Get maven home path
+     def mvnHOME = tool name: 'M2_HOME', type: 'maven'
+
+     sh "${mvnHOME}/bin/mvn package"
+    }
+
+   stage('Compile-Package'){
+     //Get maven home path
+     def mvnHOME = tool name: 'M2_HOME', type: 'maven'
+
+     sh "${mvnHOME}/bin/mvn sonar:sonar"
+    }
+   stage('Compile-Package'){
+     //Get maven home path
+     def mvnHOME = tool name: 'M2_HOME', type: 'maven'
+
+     sh "${mvnHOME}/bin/mvn deploy"
+    }
+   stage('Deploy-Tomcat'){
+       sshagent(['Deploy-Tomcat']) {
+       sh  'scp -o StrictHostKeyChecking=no  target/*.war ec2-user@54.254.205.101:/opt/apache-tomcat-9.0.16/webapps/'
+    }
+       }
+    
+    stage('Build Docker Image'){
+        sh 'docker build -t ugander/maven-web-app .'
+    }
+    
+    stage('Push Docker Image'){
+        withCredentials([string(credentialsId: 'Docker_Hub_Pwd', variable: 'Docker_Hub_Pwd')]) {
+          sh "docker login -u ugander -p ${Docker_Hub_Pwd}"
+        }
+        sh 'docker push ugander/maven-web-app'
+    }
+     
+    stage('Run Docker Image In Dev Server'){
+        
+        def dockerRun = ' docker run  -d -p 8080:8080 --name maven-web-app ugander/maven-web-app'
+         
+         sshagent(['DOCKER_SERVER']) {
+          sh 'ssh -o StrictHostKeyChecking=no ubuntu@13.250.104.78 docker stop maven-web-app || true'
+          sh 'ssh  ubuntu@13.250.104.78 docker rm maven-web-app || true'
+          sh 'ssh  ubuntu@13.250.104.78 docker rmi -f  $(docker images -q) || true'
+          sh "ssh  ubuntu@13.250.104.78 ${dockerRun}"
+       }
+       
+    }
+     
+     
+}

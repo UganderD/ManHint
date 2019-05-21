@@ -1,0 +1,18 @@
+docker volume create mongodbdata
+docker run -p 27017:27017 -v mongodbd:/data/db mongo
+
+docker exec -it 01103c124b30 /bin/bash
+
+env
+
+mongo  mongodb://127.0.0.1:27017
+
+show collections
+
+db.beginnersbook.insert({
+ name: "Chaitanya",
+ age: 30,
+ website: "beginnersbook.com"
+})
+
+db.beginnersbook.find()
